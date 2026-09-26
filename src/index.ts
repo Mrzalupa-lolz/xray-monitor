@@ -625,7 +625,13 @@ app.get("/api/remna/bandwidth", async (c) => {
   }
 });
 
-const PORT = parseInt(process.env.PORT || "9922", 10);
-serve({ fetch: app.fetch, port: PORT }, (info) => {
-  console.log(`[Server] Remnawave Traffic Monitor listening on http://127.0.0.1:${info.port}`);
-});
+const CLIENT_MODE = process.env.CLIENT_MODE === "true";
+
+if (CLIENT_MODE) {
+  console.log("[Agent Mode] Running as telemetry agent - no HTTP server started");
+} else {
+  const PORT = parseInt(process.env.PORT || "9922", 10);
+  serve({ fetch: app.fetch, port: PORT }, (info) => {
+    console.log(`[Server] Remnawave Traffic Monitor listening on http://127.0.0.1:${info.port}`);
+  });
+}
