@@ -61,6 +61,7 @@ app.get("/", (c) => {
 const pwaStaticAssets = [
   { path: "/manifest.json", file: "manifest.json", type: "application/manifest+json" },
   { path: "/sw.js", file: "sw.js", type: "application/javascript" },
+  { path: "/escape.js", file: "escape.js", type: "application/javascript" },
   { path: "/icon.svg", file: "icon.svg", type: "image/svg+xml" },
   { path: "/icon-192.png", file: "icon-192.png", type: "image/png" },
   { path: "/icon-512.png", file: "icon-512.png", type: "image/png" },
