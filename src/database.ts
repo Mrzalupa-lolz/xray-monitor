@@ -423,21 +423,17 @@ export function queryTopInbounds(hours: number = 24, userId?: number, node?: str
   const whereSql = conditions.join(" AND ");
 
   const rows = db.prepare(`
-    SELECT 
+    SELECT
       h.inbound,
       SUM(h.hits) as total_hits,
-      SUM(CASE WHEN u.connected_node LIKE '%IR%' THEN h.hits ELSE 0 END) as tunneled_hits,
-      SUM(CASE WHEN u.connected_node NOT LIKE '%IR%' OR u.connected_node IS NULL THEN h.hits ELSE 0 END) as direct_hits,
       COUNT(DISTINCT h.user_id) as users_count,
-      COUNT(DISTINCT CASE WHEN u.connected_node LIKE '%IR%' THEN h.user_id ELSE NULL END) as tunneled_users,
-      COUNT(DISTINCT CASE WHEN u.connected_node NOT LIKE '%IR%' OR u.connected_node IS NULL THEN h.user_id ELSE NULL END) as direct_users,
       COALESCE(t.uplink_bytes, 0) as uplink_bytes,
       COALESCE(t.downlink_bytes, 0) as downlink_bytes,
       COALESCE(t.total_bytes, 0) as total_bytes
     FROM hourly_stats h
     LEFT JOIN users u ON h.user_id = u.user_id
     LEFT JOIN (
-      SELECT 
+      SELECT
         inbound,
         SUM(uplink_bytes) as uplink_bytes,
         SUM(downlink_bytes) as downlink_bytes,
@@ -452,18 +448,19 @@ export function queryTopInbounds(hours: number = 24, userId?: number, node?: str
   `).all(...params) as {
     inbound: string;
     total_hits: number;
-    tunneled_hits: number;
-    direct_hits: number;
     users_count: number;
-    tunneled_users: number;
-    direct_users: number;
     uplink_bytes: number;
     downlink_bytes: number;
     total_bytes: number;
   }[];
 
   return rows.map((r) => ({
-    ...r,
+    inbound: r.inbound,
+    total_hits: r.total_hits,
+    users_count: r.users_count,
+    uplink_bytes: r.uplink_bytes,
+    downlink_bytes: r.downlink_bytes,
+    total_bytes: r.total_bytes,
     uplink_formatted: formatBytes(r.uplink_bytes),
     downlink_formatted: formatBytes(r.downlink_bytes),
     total_formatted: formatBytes(r.total_bytes),

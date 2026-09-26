@@ -191,7 +191,6 @@ export function classifyDestination(dest: string): [string, string] {
 export interface NodeAgentInfo {
   is_tracked: boolean;
   name: string;
-  role: "BRIDGE" | "TUNNEL";
   status: "ACTIVE" | "OFFLINE";
   last_seen_iso: string;
   last_seen_seconds_ago: number;
@@ -210,7 +209,6 @@ export class XrayCollector {
     string,
     {
       name: string;
-      role: "BRIDGE" | "TUNNEL";
       lastSeen: Date;
       totalBatches: number;
       totalConnections: number;
@@ -219,17 +217,14 @@ export class XrayCollector {
   private tunnelIps = new Set<string>();
 
   public recordAgentHeartbeat(nodeName: string, role: string, count: number) {
-    const normRole = (role === "TUNNEL" ? "TUNNEL" : "BRIDGE") as "BRIDGE" | "TUNNEL";
     const existing = this.agents.get(nodeName);
     if (existing) {
       existing.lastSeen = new Date();
       existing.totalBatches += 1;
       existing.totalConnections += count;
-      existing.role = normRole;
     } else {
       this.agents.set(nodeName, {
         name: nodeName,
-        role: normRole,
         lastSeen: new Date(),
         totalBatches: 1,
         totalConnections: count,
@@ -248,7 +243,6 @@ export class XrayCollector {
         return {
           is_tracked: true,
           name: agent.name,
-          role: agent.role,
           status: secAgo <= 90 ? "ACTIVE" : "OFFLINE",
           last_seen_iso: agent.lastSeen.toISOString(),
           last_seen_seconds_ago: secAgo,
@@ -267,7 +261,6 @@ export class XrayCollector {
       list.push({
         is_tracked: true,
         name: agent.name,
-        role: agent.role,
         status: secAgo <= 90 ? "ACTIVE" : "OFFLINE",
         last_seen_iso: agent.lastSeen.toISOString(),
         last_seen_seconds_ago: secAgo,
@@ -291,11 +284,6 @@ export class XrayCollector {
     if (!trimmed) return;
 
     const targetNode = node || this.localNodeName;
-
-    // Architectural Rule: Only nodes configured as BRIDGE in Remnawave record connection destinations
-    if (this.knownNodes.length > 0 && !isBridgeRole(targetNode, this.knownNodes)) {
-      return;
-    }
 
     const match = LOG_PATTERN.exec(trimmed);
     if (!match) return;
@@ -437,16 +425,10 @@ export class XrayCollector {
       // 1. Sync node topology dynamically from Remnawave API first
       const nodes = await getRemnawaveNodes(true);
       this.knownNodes = nodes;
-      this.tunnelIps = new Set(
-        nodes
-          .filter((n) => n.role === "TUNNEL" || (n.tags && n.tags.includes("TUNNEL")))
-          .map((n) => n.address)
-          .filter(Boolean)
-      );
       const local = detectLocalNode(nodes);
       if (local) {
         this.localNodeName = local.name;
-        console.log(`[Collector] Dynamic local node set from Remnawave API: ${local.name} (${local.address}) [${local.role}]`);
+        console.log(`[Collector] Dynamic local node set from Remnawave API: ${local.name} (${local.address})`);
       }
 
       const rawUsers = data.response?.users || [];
@@ -463,7 +445,7 @@ export class XrayCollector {
           .map((u) => {
             const nodeUuid = u.userTraffic?.lastConnectedNodeUuid;
             const matched = nodes.find((n) => n.uuid === nodeUuid || String(n.id) === String(nodeUuid));
-            const connected_node = matched ? matched.shortName : (u.userTraffic?.onlineAt ? "DE1" : "");
+            const connected_node = matched ? matched.shortName : "";
             return {
               id: u.id,
               username: u.username,
@@ -529,7 +511,7 @@ export class XrayCollector {
   }
 
   private startTrafficStatsTimer() {
-    const apiUrl = process.env.REMNAWAVE_API_URL || "https://panel.oximeter.cc/api";
+    const apiUrl = process.env.REMNAWAVE_API_URL || "https://panel.example.com/api";
     const apiToken = process.env.REMNAWAVE_API_TOKEN;
 
     const poll = async () => {

@@ -16,25 +16,20 @@ export interface RemnaNode {
   address: string;
   countryCode: string;
   tags: string[];
-  role: "TUNNEL" | "BRIDGE" | "OUTBOUND" | "OTHER";
-  rule: string;
   activeInbounds: InboundConfig[];
 }
 
 export interface HopInfo {
   nodeName: string;
   shortName: string;
-  role: "TUNNEL" | "BRIDGE" | "OUTBOUND" | "DIRECT" | "OTHER";
   tag: string;
   port?: number;
 }
 
 export interface ResolvedPathway {
   hops: HopInfo[];
-  isDirect: boolean;
   ingressShortName: string;
-  ingressType: "DIRECT" | "TUNNEL";
-  involved: Array<{ role: string; name: string; shortName: string }>;
+  involved: Array<{ name: string; shortName: string }>;
   nodePath: string;
   detailedPathway: string;
 }
@@ -120,41 +115,6 @@ export async function getRemnawaveNodes(forceRefresh: boolean = false): Promise<
       const rawName: string = n.name || "Unknown";
       const shortName = (rawName.split("-")[0] || rawName).toUpperCase();
 
-      let role: "TUNNEL" | "BRIDGE" | "OUTBOUND" | "OTHER" = "OTHER";
-      if (
-        tags.includes("tunnel") ||
-        tags.includes("iran") ||
-        rawName.toLowerCase().includes("iran") ||
-        rawName.toLowerCase().includes("ir")
-      ) {
-        role = "TUNNEL";
-      } else if (
-        tags.includes("bridge") ||
-        tags.includes("core") ||
-        rawName.toLowerCase().includes("de") ||
-        rawName.toLowerCase().includes("germany")
-      ) {
-        role = "BRIDGE";
-      } else if (
-        tags.includes("outbound") ||
-        tags.includes("outbund") ||
-        tags.includes("exit") ||
-        rawName.toLowerCase().includes("fi") ||
-        rawName.toLowerCase().includes("finland")
-      ) {
-        role = "OUTBOUND";
-      } else {
-        role = "OUTBOUND";
-      }
-
-      const rule =
-        n.notes ||
-        (role === "TUNNEL"
-          ? "Ingress entrance proxy. Forwarding tunnel entry into bridge nodes."
-          : role === "BRIDGE"
-            ? "Core central gateway & bridge. Full DPI, destination domain analysis, DNS sniffing, and user connection matrix."
-            : "Outbound exit node. Handles final egress internet routing.");
-
       const activeInbounds: InboundConfig[] = (n.configProfile?.activeInbounds || []).map((ib: any) => {
         const raw = ib.rawInbound || {};
         const stream = raw.streamSettings || {};
@@ -175,9 +135,7 @@ export async function getRemnawaveNodes(forceRefresh: boolean = false): Promise<
         shortName,
         address: n.address,
         countryCode: n.countryCode || "",
-        tags: tags.length > 0 ? tags : [role],
-        role,
-        rule,
+        tags,
         activeInbounds,
       };
     });
@@ -219,10 +177,7 @@ export function detectLocalNode(nodes: RemnaNode[]): RemnaNode | undefined {
 }
 
 export function isBridgeRole(nodeName: string, nodes: RemnaNode[]): boolean {
-  const found = nodes.find((n) => n.name === nodeName || n.shortName === nodeName);
-  if (found) return found.role === "BRIDGE";
-  const lower = nodeName.toLowerCase();
-  return !lower.includes("tunnel") && !lower.includes("iran") && !lower.includes("outbound");
+  return true;
 }
 
 /**
@@ -231,8 +186,8 @@ export function isBridgeRole(nodeName: string, nodes: RemnaNode[]): boolean {
  * e.g. "bridge-default-out" (path: /api/v1/play) -> "in-default" (path: /api/v1/play)
  */
 export function buildTunnelToBridgeInboundMap(profiles: ConfigProfile[]): Map<string, string> {
-  const tunnelProf = profiles.find((p) => p.name === "tunnel" || p.name.toLowerCase().includes("tunnel"));
-  const bridgeProf = profiles.find((p) => p.name === "bridge" || p.name.toLowerCase().includes("bridge"));
+  const tunnelProf = profiles.find((p) => p.name.toLowerCase().includes("tunnel"));
+  const bridgeProf = profiles.find((p) => p.name.toLowerCase().includes("bridge"));
 
   const map = new Map<string, string>();
   if (!tunnelProf || !bridgeProf) return map;
@@ -245,10 +200,9 @@ export function buildTunnelToBridgeInboundMap(profiles: ConfigProfile[]): Map<st
   const outToBridgeIn = new Map<string, string>();
   for (const o of tunnelOutbounds) {
     const path = o.streamSettings?.wsSettings?.path;
-    const sName = o.streamSettings?.tlsSettings?.serverName?.toLowerCase() || "";
 
-    // Check if this outbound targets the bridge node
-    if (o.tag.startsWith("bridge-") || sName.includes("de") || sName.includes("bridge")) {
+    // Check if this outbound targets the bridge node (by tag prefix or path matching)
+    if (o.tag.startsWith("bridge-") || o.tag.includes("-bridge")) {
       const match = bridgeInbounds.find((ib) => {
         const ibPath = ib.streamSettings?.wsSettings?.path;
         return (path && ibPath && path === ibPath) || ib.tag === o.tag.replace(/^bridge-/, "").replace(/-out$/, "");
@@ -301,200 +255,38 @@ export function resolveConnectionNodes(
 ): ResolvedPathway {
   if (!nodes || nodes.length === 0) {
     const defaultHop: HopInfo = {
-      nodeName: processingNodeName || "DE1-Oximeter",
-      shortName: (processingNodeName || "DE1").split("-")[0]!.toUpperCase(),
-      role: "BRIDGE",
+      nodeName: processingNodeName || "unknown",
+      shortName: (processingNodeName || "unknown").split("-")[0]!.toUpperCase(),
       tag: inbound || "unknown",
     };
     return {
       hops: [defaultHop],
-      isDirect: true,
       ingressShortName: defaultHop.shortName,
-      ingressType: "DIRECT",
-      involved: [{ role: defaultHop.role, name: defaultHop.nodeName, shortName: defaultHop.shortName }],
+      involved: [{ name: defaultHop.nodeName, shortName: defaultHop.shortName }],
       nodePath: defaultHop.shortName,
       detailedPathway: `${defaultHop.shortName}: ${inbound} → ${outbound || "direct"}`,
     };
   }
 
-  // 1. Identify origin node
-  let originNode = nodes.find(
+  const originNode = nodes.find(
     (n) =>
       n.name.toLowerCase() === processingNodeName.toLowerCase() ||
       n.shortName.toLowerCase() === processingNodeName.toLowerCase()
-  );
+  ) || nodes.find((n) => n.activeInbounds.some((ib) => ib.tag === inbound)) || nodes[0]!;
 
-  if (!originNode) {
-    const owner = nodes.find((n) => n.activeInbounds.some((ib) => ib.tag === inbound));
-    originNode = owner || nodes.find((n) => n.role === "BRIDGE") || nodes[0]!;
-  }
+  const hop: HopInfo = {
+    nodeName: originNode.name,
+    shortName: originNode.shortName,
+    tag: inbound,
+  };
 
-  // Find node's config profile
-  const originProfile = profiles.find((p) =>
-    p.nodes?.some((pn) => pn.name === originNode!.name || pn.uuid === originNode!.uuid) ||
-    p.name.toLowerCase() === originNode!.role.toLowerCase() ||
-    p.name.toLowerCase().includes(originNode!.shortName.toLowerCase())
-  );
-
-  // 2. Check routing rule for inbound on origin node
-  const rules = originProfile?.config?.routing?.rules || [];
-  const matchingRule = rules.find((r) => Array.isArray(r.inboundTag) && r.inboundTag.includes(inbound));
-  const configuredOutboundTag = matchingRule?.outboundTag;
-
-  const originOutbounds = originProfile?.config?.outbounds || [];
-  const outboundConfig = originOutbounds.find((o) => o.tag === configuredOutboundTag);
-
-  const hops: HopInfo[] = [];
-
-  // Case A: Origin is a TUNNEL node
-  if (originNode.role === "TUNNEL") {
-    hops.push({
-      nodeName: originNode.name,
-      shortName: originNode.shortName,
-      role: "TUNNEL",
-      tag: inbound,
-    });
-
-    // Check if this outbound forwards to a BRIDGE node
-    const effectiveOutbound = configuredOutboundTag || outbound;
-    const isBridgeForward =
-      effectiveOutbound &&
-      (effectiveOutbound.startsWith("bridge-") ||
-        outboundConfig?.streamSettings?.tlsSettings?.serverName?.includes("de") ||
-        outboundConfig?.streamSettings?.tlsSettings?.serverName?.includes("bridge"));
-
-    if (isBridgeForward) {
-      // Find bridge node
-      const bridgeNode = nodes.find((n) => n.role === "BRIDGE") || nodes.find((n) => n.shortName === "DE1");
-      if (bridgeNode) {
-        // Find matching bridge inbound (by path or name)
-        const path = outboundConfig?.streamSettings?.wsSettings?.path;
-        const bridgeIn = bridgeNode.activeInbounds.find((ib) => {
-          return (path && ib.path && path === ib.path) || ib.tag === effectiveOutbound?.replace(/^bridge-/, "").replace(/-out$/, "");
-        });
-
-        const bridgeTag = bridgeIn?.tag || effectiveOutbound?.replace(/^bridge-/, "").replace(/-out$/, "") || "in-default";
-
-        hops.push({
-          nodeName: bridgeNode.name,
-          shortName: bridgeNode.shortName,
-          role: "BRIDGE",
-          tag: bridgeTag,
-        });
-
-        // Check if Bridge routes to an OUTBOUND egress node (e.g. FI1)
-        const bridgeProfile = profiles.find((p) => p.name === "bridge" || p.name.toLowerCase().includes("bridge"));
-        const bridgeRule = bridgeProfile?.config?.routing?.rules?.find(
-          (r) => Array.isArray(r.inboundTag) && r.inboundTag.includes(bridgeTag)
-        );
-        const bridgeOutbound = bridgeRule?.outboundTag;
-
-        if (bridgeOutbound && (bridgeOutbound.includes("finland") || bridgeOutbound.includes("fi1"))) {
-          const egressNode = nodes.find((n) => n.role === "OUTBOUND" || n.shortName === "FI1");
-          if (egressNode) {
-            hops.push({
-              nodeName: egressNode.name,
-              shortName: egressNode.shortName,
-              role: "OUTBOUND",
-              tag: egressNode.activeInbounds[0]?.tag || "vless-fi1-in",
-            });
-          }
-        }
-      }
-    }
-    // Else: Direct tunnel connection (e.g. vless-ws-tls-lu2-in -> abr-2-out, vless-ws-tls-lu1-in -> abr-1-out)
-    // -> No Bridge hop added! Exits directly from Tunnel!
-  } else {
-    // Case B: Origin is a BRIDGE node
-    // Check if user entered via a tunnel (User must have connected to an IR node!)
-    const tunnelMap = buildTunnelToBridgeInboundMap(profiles);
-    let feedingTunnelTag: string | undefined;
-
-    for (const [tIn, bIn] of tunnelMap.entries()) {
-      if (bIn === inbound) {
-        feedingTunnelTag = tIn;
-        break;
-      }
-    }
-
-    const isTunneled =
-      Boolean(feedingTunnelTag) &&
-      Boolean(userConnectedNode && userConnectedNode.toUpperCase().includes("IR"));
-
-    if (isTunneled) {
-      const tunnelNode = nodes.find((n) => n.role === "TUNNEL") || nodes.find((n) => n.shortName === "IR1");
-      if (tunnelNode) {
-        hops.push({
-          nodeName: tunnelNode.name,
-          shortName: tunnelNode.shortName,
-          role: "TUNNEL",
-          tag: feedingTunnelTag || `${inbound}-loop`,
-        });
-      }
-    }
-
-    hops.push({
-      nodeName: originNode.name,
-      shortName: originNode.shortName,
-      role: originNode.role,
-      tag: inbound,
-    });
-
-    // Check if Bridge routes to an OUTBOUND egress node (e.g. FI1)
-    if (configuredOutboundTag && (configuredOutboundTag.includes("finland") || configuredOutboundTag.includes("fi1"))) {
-      const egressNode = nodes.find((n) => n.role === "OUTBOUND" || n.shortName === "FI1");
-      if (egressNode) {
-        hops.push({
-          nodeName: egressNode.name,
-          shortName: egressNode.shortName,
-          role: "OUTBOUND",
-          tag: egressNode.activeInbounds[0]?.tag || "vless-fi1-in",
-        });
-      }
-    }
-  }
-
-  // 3. Output formatting
-  const firstHop = hops[0]!;
-  const isDirect = firstHop.role !== "TUNNEL";
-  const ingressShortName = firstHop.shortName;
-  const ingressType: "DIRECT" | "TUNNEL" = isDirect ? "DIRECT" : "TUNNEL";
-
-  const involvedMap = new Map<string, { role: string; name: string; shortName: string }>();
-  for (const h of hops) {
-    if (!involvedMap.has(h.shortName)) {
-      involvedMap.set(h.shortName, {
-        role: h.role,
-        name: h.nodeName,
-        shortName: h.shortName,
-      });
-    }
-  }
-  const involved = Array.from(involvedMap.values());
-  const nodePath = Array.from(involvedMap.keys()).join(" → ");
-
-  // Final egress outbound label
-  let finalOutbound = outbound || configuredOutboundTag || "direct";
-  const lastHop = hops[hops.length - 1];
-  if (lastHop && lastHop.role === "BRIDGE") {
-    // If transit tag was passed (e.g. bridge-default-out), replace with Bridge real egress
-    if (finalOutbound.startsWith("bridge-") || finalOutbound.endsWith("-loop")) {
-      const bridgeProfile = profiles.find((p) => p.name === "bridge" || p.name.toLowerCase().includes("bridge"));
-      const bridgeRule = bridgeProfile?.config?.routing?.rules?.find(
-        (r) => Array.isArray(r.inboundTag) && r.inboundTag.includes(lastHop.tag)
-      );
-      finalOutbound = bridgeRule?.outboundTag || (bridgeRule as any)?.balancerTag || "warp";
-    }
-  }
-
-  const hopTags = hops.map((h) => `${h.shortName}: ${h.tag}`);
-  const detailedPathway = `${hopTags.join(" → ")} → ${finalOutbound}`;
+  const involved = [{ name: originNode.name, shortName: originNode.shortName }];
+  const nodePath = originNode.shortName;
+  const detailedPathway = `${originNode.shortName}: ${inbound} → ${outbound || "direct"}`;
 
   return {
-    hops,
-    isDirect,
-    ingressShortName,
-    ingressType,
+    hops: [hop],
+    ingressShortName: originNode.shortName,
     involved,
     nodePath,
     detailedPathway,

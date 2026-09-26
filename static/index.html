@@ -19,6 +19,7 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/escape.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -873,13 +874,13 @@
               <td class="px-4 py-2.5 text-zinc-500">${i + 1}</td>
               <td class="px-4 py-2.5 font-medium text-zinc-100 flex items-center gap-2">
                 <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
-                ${d.root_domain}
+                ${escapeHtml(d.root_domain)}
               </td>
               <td class="px-4 py-2.5">${getCategoryBadge(d.category)}</td>
               <td class="px-4 py-2.5 text-right font-mono font-medium text-zinc-200">${Number(d.total_hits).toLocaleString()}</td>
               <td class="px-4 py-2.5 text-right font-mono text-zinc-400">${d.users_count}</td>
               <td class="px-4 py-2.5 text-center">
-                <button onclick="inspectDomain('${d.root_domain}')" class="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[11px] text-zinc-300 transition">
+                <button data-action="inspect-domain" data-domain="${escapeHtml(d.root_domain)}" class="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[11px] text-zinc-300 transition">
                   Users
                 </button>
               </td>
@@ -1105,17 +1106,17 @@
             <td class="px-4 py-3 font-mono text-zinc-400">#${u.user_id}</td>
             <td class="px-4 py-3 font-medium text-white flex items-center gap-2">
               <span class="w-2 h-2 rounded-full ${u.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-zinc-600'}"></span>
-              <span>${u.username}</span>
+              <span>${escapeHtml(u.username)}</span>
             </td>
             <td class="px-4 py-3">${ingressBadge}</td>
             <td class="px-4 py-3">
-              <span class="px-2 py-0.5 rounded text-[11px] ${u.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-zinc-800 text-zinc-400'}">${u.status}</span>
+              <span class="px-2 py-0.5 rounded text-[11px] ${u.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-zinc-800 text-zinc-400'}">${escapeHtml(u.status)}</span>
             </td>
             <td class="px-4 py-3 text-right font-mono font-medium text-zinc-200">${Number(u.total_hits).toLocaleString()}</td>
             <td class="px-4 py-3 text-right font-mono text-zinc-400">${u.unique_domains}</td>
             <td class="px-4 py-3 font-mono text-zinc-400 text-[11px]">${toTehranTime(u.last_seen)}</td>
             <td class="px-4 py-3 text-center">
-              <button onclick="inspectUser(${u.user_id}, '${u.username}')" class="px-2.5 py-1 rounded bg-brand-600/20 text-brand-400 border border-brand-500/30 hover:bg-brand-600 hover:text-white transition text-xs font-medium">
+              <button data-action="inspect-user" data-user-id="${u.user_id}" data-username="${escapeHtml(u.username)}" class="px-2.5 py-1 rounded bg-brand-600/20 text-brand-400 border border-brand-500/30 hover:bg-brand-600 hover:text-white transition text-xs font-medium">
                 View Activity
               </button>
             </td>
@@ -1156,16 +1157,16 @@
 
         tbody.innerHTML = rows.map(r => {
           const ingressBadge = r.is_direct
-            ? `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">DIRECT (${r.ingress_node || 'DE1'})</span>`
-            : `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/25">TUNNEL (${r.ingress_node || 'IR1'})</span>`;
+            ? `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">DIRECT (${escapeHtml(r.ingress_node || 'DE1')})</span>`
+            : `<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/25">TUNNEL (${escapeHtml(r.ingress_node || 'IR1')})</span>`;
 
           return `
             <tr class="hover:bg-zinc-800/30 transition text-[11px]">
               <td class="px-4 py-1.5 text-zinc-400 whitespace-nowrap">${toTehranTime(r.ts)}</td>
-              <td class="px-4 py-1.5 font-sans font-medium text-zinc-200">${r.username} <span class="text-zinc-500">(#${r.user_id})</span></td>
+              <td class="px-4 py-1.5 font-sans font-medium text-zinc-200">${escapeHtml(r.username)} <span class="text-zinc-500">(#${r.user_id})</span></td>
               <td class="px-4 py-1.5 whitespace-nowrap">${ingressBadge}</td>
-              <td class="px-4 py-1.5 uppercase text-zinc-400">${r.proto}</td>
-              <td class="px-4 py-1.5 text-indigo-300 font-medium truncate max-w-xs">${r.dest}</td>
+              <td class="px-4 py-1.5 uppercase text-zinc-400">${escapeHtml(r.proto)}</td>
+              <td class="px-4 py-1.5 text-indigo-300 font-medium truncate max-w-xs">${escapeHtml(r.dest)}</td>
               <td class="px-4 py-1.5 text-zinc-400">${r.port}</td>
               <td class="px-4 py-1.5 whitespace-nowrap">${formatRoutePathway(r.inbound, r.outbound, r)}</td>
               <td class="px-4 py-1.5 whitespace-nowrap">${renderInvolvedNodes(r)}</td>
@@ -1260,7 +1261,7 @@
             <tr class="hover:bg-zinc-800/30 transition">
               <td class="px-4 py-3 font-sans font-medium text-zinc-100 flex items-center gap-2">
                 <span class="w-1.5 h-1.5 rounded-full ${isBridge && directHits > 0 && tunneledHits > 0 ? 'bg-cyan-400' : (isTunnel ? 'bg-amber-400' : 'bg-indigo-400')}"></span>
-                <span>${c.tag}</span>
+                <span>${escapeHtml(c.tag)}</span>
                 ${nodeBadge}
               </td>
               <td class="px-4 py-3">${directCell}</td>
@@ -1329,16 +1330,16 @@
             <div class="p-3 bg-zinc-950/60 border border-zinc-800 rounded-lg flex flex-wrap items-center justify-between gap-3 text-xs">
               <div class="space-y-1">
                 <div class="flex items-center gap-2">
-                  <span class="px-2 py-0.5 rounded text-[11px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">${d.platform || 'Device'}</span>
-                  <span class="font-medium text-white">${d.deviceModel || 'Unknown Model'}</span>
-                  <span class="text-zinc-500 font-mono">${d.osVersion ? 'v' + d.osVersion : ''}</span>
+                  <span class="px-2 py-0.5 rounded text-[11px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">${escapeHtml(d.platform || 'Device')}</span>
+                  <span class="font-medium text-white">${escapeHtml(d.deviceModel || 'Unknown Model')}</span>
+                  <span class="text-zinc-500 font-mono">${d.osVersion ? 'v' + escapeHtml(d.osVersion) : ''}</span>
                 </div>
-                <div class="text-zinc-400 font-mono text-[11px]">App: ${d.userAgent || '-'}</div>
-                <div class="text-[11px] text-zinc-500 font-mono">HWID: <span class="text-zinc-400">${d.hwid || '-'}</span></div>
+                <div class="text-zinc-400 font-mono text-[11px]">App: ${escapeHtml(d.userAgent || '-')}</div>
+                <div class="text-[11px] text-zinc-500 font-mono">HWID: <span class="text-zinc-400">${escapeHtml(d.hwid || '-')}</span></div>
               </div>
               <div class="text-right font-mono text-[11px] text-zinc-400">
                 <div>${toTehranTime(d.updatedAt || d.createdAt)}</div>
-                <div class="text-zinc-500 mt-0.5">IP: ${d.requestIp || '-'}</div>
+                <div class="text-zinc-500 mt-0.5">IP: ${escapeHtml(d.requestIp || '-')}</div>
               </div>
             </div>
           `).join('');
@@ -1356,10 +1357,10 @@
           srhTbody.innerHTML = srhRecords.slice(0, 15).map(r => `
             <tr class="hover:bg-zinc-800/30 transition text-[11px]">
               <td class="px-3 py-2 text-zinc-400 whitespace-nowrap">${toTehranTime(r.requestAt)}</td>
-              <td class="px-3 py-2 text-zinc-300 font-mono">${r.requestIp || '-'}</td>
-              <td class="px-3 py-2 text-white">${r.clientApp || (r.userAgent ? r.userAgent.split('/')[0] : 'Generic')}</td>
-              <td class="px-3 py-2 text-zinc-400">${r.srrResponseType || r.srrRuleName || 'Base64'}</td>
-              <td class="px-3 py-2 text-zinc-500 truncate max-w-xs" title="${r.userAgent || ''}">${r.userAgent || '-'}</td>
+              <td class="px-3 py-2 text-zinc-300 font-mono">${escapeHtml(r.requestIp || '-')}</td>
+              <td class="px-3 py-2 text-white">${escapeHtml(r.clientApp || (r.userAgent ? r.userAgent.split('/')[0] : 'Generic'))}</td>
+              <td class="px-3 py-2 text-zinc-400">${escapeHtml(r.srrResponseType || r.srrRuleName || 'Base64')}</td>
+              <td class="px-3 py-2 text-zinc-500 truncate max-w-xs" title="${escapeHtml(r.userAgent || '')}">${escapeHtml(r.userAgent || '-')}</td>
             </tr>
           `).join('');
         }
@@ -1371,7 +1372,7 @@
         } else {
           domainsTbody.innerHTML = data.top_domains.map(d => `
             <tr>
-              <td class="px-3 py-2 font-medium text-zinc-200">${d.root_domain}</td>
+              <td class="px-3 py-2 font-medium text-zinc-200">${escapeHtml(d.root_domain)}</td>
               <td class="px-3 py-2">${getCategoryBadge(d.category)}</td>
               <td class="px-3 py-2 text-right font-mono text-zinc-300">${Number(d.hits).toLocaleString()}</td>
             </tr>
@@ -1401,9 +1402,9 @@
               <td class="px-3 py-2">
                 <div class="font-medium text-zinc-100 flex items-center gap-1.5">
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                  <span>${c.root_domain && c.root_domain !== 'unknown' ? c.root_domain : c.dest}</span>
+                  <span>${escapeHtml(c.root_domain && c.root_domain !== 'unknown' ? c.root_domain : c.dest)}</span>
                 </div>
-                <div class="text-[10px] text-zinc-500 font-mono mt-0.5">${c.dest}:${c.port}</div>
+                <div class="text-[10px] text-zinc-500 font-mono mt-0.5">${escapeHtml(c.dest)}:${c.port}</div>
               </td>
               <td class="px-3 py-2">${formatRoutePathway(c.inbound, c.outbound, c)}</td>
             </tr>
@@ -1421,7 +1422,7 @@
         const res = await fetch(`/api/domain/${encodeURIComponent(domain)}?hours=${currentHours}`);
         const data = await res.json();
 
-        document.getElementById('modalDomainName').innerText = domain;
+        document.getElementById('modalDomainName').textContent = domain;
         const tbody = document.getElementById('modalDomainUsers');
         if (data.top_users.length === 0) {
           tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-4 text-center text-zinc-500">No user visits recorded.</td></tr>';
@@ -1429,8 +1430,8 @@
           tbody.innerHTML = data.top_users.map(u => `
             <tr class="hover:bg-zinc-800/30 transition text-xs">
               <td class="px-4 py-2 font-medium text-zinc-200">
-                <button onclick="inspectUser(${u.user_id}, '${u.username}')" class="text-brand-400 hover:text-brand-300 hover:underline text-left">
-                  ${u.username}
+                <button data-action="inspect-user" data-user-id="${u.user_id}" data-username="${escapeHtml(u.username)}" class="text-brand-400 hover:text-brand-300 hover:underline text-left">
+                  ${escapeHtml(u.username)}
                 </button>
                 <span class="text-zinc-500 font-mono text-[10px] ml-1">(#${u.user_id})</span>
               </td>
@@ -1472,10 +1473,10 @@
             : (h.role === 'BRIDGE'
               ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/25'
               : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25');
-          return `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono border ${col}" title="${h.nodeName}">${h.shortName}: ${h.tag}</span>`;
+          return `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono border ${col}" title="${escapeHtml(h.nodeName)}">${escapeHtml(h.shortName)}: ${escapeHtml(h.tag)}</span>`;
         }).join(' <span class="text-zinc-600 text-[10px]">→</span> ');
 
-        const outStr = r.outbound || outbound || 'direct';
+        const outStr = escapeHtml(r.outbound || outbound || 'direct');
         const isOutNode = r.involved_nodes && r.involved_nodes.some(n => n.role === 'OUTBOUND');
         const outCol = isOutNode ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25' : 'bg-zinc-800 text-zinc-300';
         const outHtml = `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono ${outCol}" title="Outbound Egress">${outStr}</span>`;
@@ -1484,8 +1485,8 @@
       }
 
       // 2. Fallback if hops array not available
-      const outStr = outbound || 'direct';
-      return `<span class="text-zinc-400 font-mono text-[10px]">${inbound} → ${outStr}</span>`;
+      const outStr = escapeHtml(outbound || 'direct');
+      return `<span class="text-zinc-400 font-mono text-[10px]">${escapeHtml(inbound)} → ${outStr}</span>`;
     }
 
     function renderInvolvedNodes(r) {
@@ -1499,22 +1500,22 @@
           }
         }
         return uniqueHops.map(n => {
-          const col = n.role === 'TUNNEL' 
-            ? 'bg-amber-500/15 text-amber-400 border-amber-500/25' 
+          const col = n.role === 'TUNNEL'
+            ? 'bg-amber-500/15 text-amber-400 border-amber-500/25'
             : (n.role === 'BRIDGE' ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/25' : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25');
-          return `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono border ${col}" title="${n.nodeName}">${n.shortName}</span>`;
+          return `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono border ${col}" title="${escapeHtml(n.nodeName)}">${escapeHtml(n.shortName)}</span>`;
         }).join('<span class="text-zinc-600 text-[10px] mx-1">→</span>');
       }
 
       if (r && r.involved_nodes && r.involved_nodes.length > 0) {
         return r.involved_nodes.map(n => {
-          const col = n.role === 'TUNNEL' 
-            ? 'bg-amber-500/15 text-amber-400 border-amber-500/25' 
+          const col = n.role === 'TUNNEL'
+            ? 'bg-amber-500/15 text-amber-400 border-amber-500/25'
             : (n.role === 'BRIDGE' ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/25' : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25');
-          return `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono border ${col}" title="${n.name}">${n.shortName}</span>`;
+          return `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono border ${col}" title="${escapeHtml(n.name)}">${escapeHtml(n.shortName)}</span>`;
         }).join('<span class="text-zinc-600 text-[10px] mx-1">→</span>');
       }
-      return `<span class="text-zinc-400 font-mono text-[10px]">${r?.node_path || r?.node || 'DE1'}</span>`;
+      return `<span class="text-zinc-400 font-mono text-[10px]">${escapeHtml(r?.node_path || r?.node || 'DE1')}</span>`;
     }
 
     // TEHRAN TIMEZONE UTILITIES
@@ -1651,21 +1652,21 @@
       tbody.innerHTML = devices.map(d => `
         <tr class="hover:bg-zinc-800/30 transition">
           <td class="px-4 py-3 font-medium text-white">
-            ${d.user ? d.user.username : 'User #' + d.userId}
+            ${escapeHtml(d.user ? d.user.username : 'User #' + d.userId)}
             <span class="text-zinc-500 font-mono text-[11px]">(#${d.userId})</span>
           </td>
           <td class="px-4 py-3">
             <span class="px-2 py-0.5 rounded text-[11px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
-              ${d.platform || 'Other'}
+              ${escapeHtml(d.platform || 'Other')}
             </span>
           </td>
-          <td class="px-4 py-3 font-mono text-zinc-300">${d.deviceModel || '-'}</td>
-          <td class="px-4 py-3 font-mono text-zinc-400">${d.osVersion || '-'}</td>
-          <td class="px-4 py-3 text-zinc-300 truncate max-w-xs" title="${d.userAgent || ''}">
-            ${d.userAgent ? d.userAgent.split(' ')[0] : '-'}
+          <td class="px-4 py-3 font-mono text-zinc-300">${escapeHtml(d.deviceModel || '-')}</td>
+          <td class="px-4 py-3 font-mono text-zinc-400">${escapeHtml(d.osVersion || '-')}</td>
+          <td class="px-4 py-3 text-zinc-300 truncate max-w-xs" title="${escapeHtml(d.userAgent || '')}">
+            ${escapeHtml(d.userAgent ? d.userAgent.split(' ')[0] : '-')}
           </td>
-          <td class="px-4 py-3 font-mono text-[11px] text-zinc-500" title="${d.hwid}">
-            ${d.hwid ? d.hwid.slice(0, 12) + '...' : '-'}
+          <td class="px-4 py-3 font-mono text-[11px] text-zinc-500" title="${escapeHtml(d.hwid)}">
+            ${d.hwid ? escapeHtml(d.hwid.slice(0, 12)) + '...' : '-'}
           </td>
           <td class="px-4 py-3 text-right font-mono text-zinc-400">
             ${toTehranTime(d.updatedAt || d.createdAt)}
@@ -1750,18 +1751,18 @@
         <tr class="hover:bg-zinc-800/30 transition">
           <td class="px-4 py-2.5 text-zinc-400 whitespace-nowrap">${toTehranTime(r.requestAt)}</td>
           <td class="px-4 py-2.5 font-sans font-medium text-white">
-            ${r.user ? r.user.username : 'User #' + r.userId}
+            ${escapeHtml(r.user ? r.user.username : 'User #' + r.userId)}
             <span class="text-zinc-500 font-mono text-[10px]">(#${r.userId})</span>
           </td>
-          <td class="px-4 py-2.5 text-zinc-300">${r.requestIp || '-'}</td>
+          <td class="px-4 py-2.5 text-zinc-300">${escapeHtml(r.requestIp || '-')}</td>
           <td class="px-4 py-2.5">
             <span class="px-1.5 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-300">
-              ${r.clientApp || (r.userAgent ? r.userAgent.split('/')[0] : 'Generic')}
+              ${escapeHtml(r.clientApp || (r.userAgent ? r.userAgent.split('/')[0] : 'Generic'))}
             </span>
           </td>
-          <td class="px-4 py-2.5 text-zinc-400 font-sans text-[11px]">${r.srrResponseType || r.srrRuleName || 'Base64'}</td>
-          <td class="px-4 py-2.5 text-zinc-500 truncate max-w-xs font-sans text-[11px]" title="${r.userAgent || ''}">
-            ${r.userAgent || '-'}
+          <td class="px-4 py-2.5 text-zinc-400 font-sans text-[11px]">${escapeHtml(r.srrResponseType || r.srrRuleName || 'Base64')}</td>
+          <td class="px-4 py-2.5 text-zinc-500 truncate max-w-xs font-sans text-[11px]" title="${escapeHtml(r.userAgent || '')}">
+            ${escapeHtml(r.userAgent || '-')}
           </td>
         </tr>
       `).join('');
@@ -1836,8 +1837,8 @@
 
           const inboundsList = (n.inboundsStats || []).slice(0, 8).map(ib => `
             <div class="flex items-center justify-between text-[11px] py-1 border-b border-zinc-800/40">
-              <span class="font-mono text-zinc-300 truncate max-w-[140px]">${ib.tag}</span>
-              <span class="font-mono text-zinc-400">↑ ${ib.upload || '0 B'} · ↓ ${ib.download || '0 B'}</span>
+              <span class="font-mono text-zinc-300 truncate max-w-[140px]">${escapeHtml(ib.tag)}</span>
+              <span class="font-mono text-zinc-400">↑ ${escapeHtml(ib.upload || '0 B')} · ↓ ${escapeHtml(ib.download || '0 B')}</span>
             </div>
           `).join('');
 
@@ -1850,7 +1851,7 @@
           const ruleCard = `
             <div class="p-2.5 rounded-lg border text-xs flex items-start gap-2 ${n.role === 'TUNNEL' ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' : (n.role === 'BRIDGE' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300')}">
               <div class="font-bold uppercase tracking-wider text-[10px] shrink-0 mt-0.5">Role Rule:</div>
-              <div class="text-[11px] leading-relaxed font-sans">${n.rule}</div>
+              <div class="text-[11px] leading-relaxed font-sans">${escapeHtml(n.rule)}</div>
             </div>
           `;
 
@@ -1863,7 +1864,7 @@
                 <div>
                   <div class="text-xs font-mono font-semibold text-zinc-200 flex items-center gap-1.5">
                     <span>xray-monitor-node</span>
-                    ${isTracked ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">${agent.role}</span>` : ''}
+                    ${isTracked ? `<span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">${escapeHtml(agent.role)}</span>` : ''}
                   </div>
                   <div class="text-[10px] text-zinc-500 font-sans mt-0.5">
                     ${isTracked ? `${Number(agent.total_connections || 0).toLocaleString()} events streamed · ${agent.total_batches || 0} batches` : 'No telemetry agent reporting'}
@@ -1884,13 +1885,13 @@
               <div class="space-y-3">
                 <div class="flex items-start justify-between gap-2">
                   <div class="flex items-center gap-2.5">
-                    <span class="text-2xl">${n.countryEmoji || '🌐'}</span>
+                    <span class="text-2xl">${escapeHtml(n.countryEmoji || '🌐')}</span>
                     <div>
                       <div class="flex items-center gap-2">
-                        <h4 class="text-base font-semibold text-white">${n.nodeName}</h4>
+                        <h4 class="text-base font-semibold text-white">${escapeHtml(n.nodeName)}</h4>
                         ${roleBadge}
                       </div>
-                      <p class="text-xs text-zinc-500 font-mono mt-0.5">${n.address || '-'} · ${n.providerName || 'Provider'}</p>
+                      <p class="text-xs text-zinc-500 font-mono mt-0.5">${escapeHtml(n.address || '-')} · ${escapeHtml(n.providerName || 'Provider')}</p>
                     </div>
                   </div>
                   <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium shrink-0">
@@ -2062,6 +2063,23 @@
       loadUsersDropdown();
       loadAllData();
       startAutoRefresh();
+
+      // Event delegation for all button clicks with data-action attributes
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+
+        const action = btn.dataset.action;
+
+        if (action === 'inspect-domain') {
+          const domain = btn.dataset.domain;
+          if (domain) inspectDomain(domain);
+        } else if (action === 'inspect-user') {
+          const userId = parseInt(btn.dataset.userId, 10);
+          const username = btn.dataset.username;
+          if (userId && username) inspectUser(userId, username);
+        }
+      });
     });
 
     // PWA Service Worker & Install Prompt Registration
