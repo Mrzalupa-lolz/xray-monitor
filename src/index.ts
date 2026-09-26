@@ -118,8 +118,7 @@ app.get("/api/summary", async (c) => {
     const cacheKey = `${start}_${end}`;
 
     const nodes = await getRemnawaveNodes();
-    const tunnelNames = new Set(nodes.filter((n) => n.role === "TUNNEL").map((n) => n.name.toLowerCase()));
-    const egressNodeNames = nodes.filter((n) => n.role !== "TUNNEL").map((n) => n.shortName);
+    const egressNodeNames = nodes.map((n) => n.shortName);
     (summary as any).egress_nodes = egressNodeNames;
 
     // Timeframe label: if sub-day (e.g. 1h, 6h, 12h), Remnawave daily API cannot scope by hours,
@@ -215,9 +214,6 @@ app.get("/api/top-inbounds", async (c) => {
     (ib) => (ib.total_hits || 0) > 0 || (ib.total_bytes || 0) > 0 || liveInboundStatsMap.has(ib.inbound)
   );
 
-  const tunnelNodes = nodes.filter((n) => n.role === "TUNNEL");
-  const bridgeNodes = nodes.filter((n) => n.role === "BRIDGE");
-
   // Map of total recorded stats per inbound tag
   const inboundStatsMap = new Map<string, { hits: number; bytes: number; users: number }>();
   for (const ib of activeInbounds) {
@@ -245,8 +241,6 @@ app.get("/api/top-inbounds", async (c) => {
     // Identify owner node from Remnawave config or metrics
     const ownerNode = nodes.find((n) => n.activeInbounds.some((i) => i.tag === tag)) ||
       nodes.find((n) => n.name === liveStats?.node_name);
-    const isBridge = ownerNode ? ownerNode.role === "BRIDGE" : bridgeNodes.some((b) => b.activeInbounds.some((i) => i.tag === tag));
-    const isTunnel = ownerNode ? ownerNode.role === "TUNNEL" : tunnelNodes.some((t) => t.activeInbounds.some((i) => i.tag === tag));
 
     // If user filtered by specific node, filter accordingly
     if (node) {
@@ -254,68 +248,15 @@ app.get("/api/top-inbounds", async (c) => {
       if (!matchNode) continue;
     }
 
-    let directHits = 0;
-    let tunneledHits = 0;
-    let directBytes = 0;
-    let tunneledBytes = 0;
-    let directUsers = 0;
-    let tunneledUsers = 0;
-    let feedingTunnels: string[] = [];
-
-    if (isBridge) {
-      // FORMULA: direct traffic = bridge inbound traffic - sum(tunneled traffic of before hops)
-      feedingTunnels = getFeedingTunnelInbounds(profiles, tag);
-      const tunneledFromFeeders = feedingTunnels.reduce((sum, tTag) => sum + (inboundStatsMap.get(tTag)?.hits || 0), 0);
-      const tunneledBytesFromFeeders = feedingTunnels.reduce((sum, tTag) => sum + (inboundStatsMap.get(tTag)?.bytes || 0), 0);
-      const tunneledUsersFromFeeders = feedingTunnels.reduce((sum, tTag) => Math.max(sum, inboundStatsMap.get(tTag)?.users || 0), 0);
-
-      tunneledHits = Math.max(ib.tunneled_hits || 0, tunneledFromFeeders);
-      tunneledBytes = tunneledBytesFromFeeders;
-      tunneledUsers = Math.max(ib.tunneled_users || 0, tunneledUsersFromFeeders);
-
-      directHits = Math.max(0, (ib.total_hits || 0) - tunneledHits);
-      directBytes = Math.max(0, totalBytes - tunneledBytes);
-      directUsers = Math.max(0, (ib.users_count || 0) - tunneledUsers);
-    } else {
-      // FORMULA for tunnel inbound: just show its traffic (without any calculation)
-      tunneledHits = ib.total_hits || 0;
-      directHits = 0;
-      tunneledBytes = totalBytes;
-      directBytes = 0;
-      tunneledUsers = ib.users_count || 0;
-      directUsers = 0;
-    }
-
-    const hasTunnels = isTunnel || feedingTunnels.length > 0;
-    const isDual = isBridge && feedingTunnels.length > 0 && directHits > 0;
-    const chainType = isDual ? "DUAL_ENTRY" : (isTunnel ? "TUNNEL_CHAIN" : "DIRECT_BRIDGE");
-    const typeLabel = isDual
-      ? "Dual Entry (Tunneled & Direct)"
-      : (isTunnel ? "Tunnel Ingress" : "Direct Bridge");
-
     chains.push({
       tag,
       chain_name: tag.startsWith("in-") ? tag.replace(/^in-/, "").toUpperCase() : tag,
-      chain_type: chainType,
-      type_label: typeLabel,
-      is_tunneled: hasTunnels,
-      is_dual: isDual,
       node_name: ownerNode?.name || "unknown",
       node_short: ownerNode?.shortName || "unknown",
-      node_role: ownerNode?.role || "OTHER",
-      feeding_tunnels: feedingTunnels,
       total_hits: ib.total_hits,
-      direct_hits: directHits,
-      tunneled_hits: tunneledHits,
       users_count: ib.users_count,
-      direct_users: directUsers,
-      tunneled_users: tunneledUsers,
       total_bytes: totalBytes,
-      direct_bytes: directBytes,
-      tunneled_bytes: tunneledBytes,
       total_formatted: totalFormatted,
-      direct_formatted: formatBytes(directBytes),
-      tunneled_formatted: formatBytes(tunneledBytes),
       uplink_formatted: uplinkFormatted,
       downlink_formatted: downlinkFormatted,
     });
@@ -326,7 +267,7 @@ app.get("/api/top-inbounds", async (c) => {
 
   return c.json({
     chains,
-    nodes: nodes.map((n) => ({ name: n.name, shortName: n.shortName, role: n.role })),
+    nodes: nodes.map((n) => ({ name: n.name, shortName: n.shortName })),
   });
 });
 
@@ -552,15 +493,12 @@ app.get("/api/remna/sessions", async (c) => {
         name: m.nodeName,
         shortName: m.nodeName.split("-")[0] || m.nodeName,
         tags: [],
-        role: "OTHER",
-        rule: "Node managed via Remnawave.",
         activeInbounds: [],
       };
 
       const agent = collector.getAgentInfo(m.nodeName) || {
         is_tracked: false,
         name: m.nodeName,
-        role: dyn.role,
         status: "NOT_CONFIGURED",
         last_seen_iso: "",
         last_seen_seconds_ago: -1,
@@ -570,10 +508,8 @@ app.get("/api/remna/sessions", async (c) => {
 
       return {
         ...m,
-        role: dyn.role,
         tags: dyn.tags,
         shortName: dyn.shortName,
-        rule: dyn.rule,
         activeInboundsCount: dyn.activeInbounds.length || (m.inboundsStats?.length || 0),
         agent,
       };
@@ -605,12 +541,7 @@ app.get("/api/remna/bandwidth", async (c) => {
       getRemnawaveNodes(),
     ]);
 
-    const tunnelNames = new Set(nodes.filter((n) => n.role === "TUNNEL").map((n) => n.name.toLowerCase()));
-
-    // Filter out any TUNNEL nodes dynamically from series
-    const series = (rangeData.response?.series || []).filter(
-      (s: any) => !tunnelNames.has(s.name.toLowerCase())
-    );
+    const series = rangeData.response?.series || [];
     const categories = rangeData.response?.categories || [];
 
     return c.json({
