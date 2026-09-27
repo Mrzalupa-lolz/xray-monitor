@@ -95,21 +95,21 @@
           </div>
         </div>
 
-        <!-- Mobile-only Tehran Clock -->
+        <!-- Mobile-only Moscow Clock -->
         <div class="flex items-center gap-1.5 md:hidden">
           <div class="flex items-center gap-1 px-2 h-7 rounded-md border border-zinc-800 bg-zinc-900/80 text-[11px] text-zinc-300 font-mono">
             <svg class="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <span id="tehranClockMobile">--:--</span>
+            <span id="moscowClockMobile">--:--</span>
           </div>
         </div>
       </div>
 
       <!-- Controls Row: Ultra-adaptive on all screens -->
       <div class="flex items-center justify-between md:justify-end flex-wrap sm:flex-nowrap gap-2 overflow-x-auto no-scrollbar py-0.5">
-        <!-- Tehran Time Badge (Desktop) -->
+        <!-- Moscow Time Badge (Desktop) -->
         <div class="hidden md:flex items-center gap-1.5 px-2.5 h-8 rounded-lg border border-zinc-800 bg-zinc-900 text-xs text-zinc-300 font-mono shrink-0">
           <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <span id="tehranClock" class="text-zinc-300">Tehran: --:--:--</span>
+          <span id="moscowClock" class="text-zinc-300">Moscow: --:--:--</span>
         </div>
 
         <!-- Time Range Selector -->
@@ -360,7 +360,7 @@
           <table class="w-full text-left text-xs font-mono text-zinc-300">
             <thead class="bg-zinc-950/60 text-zinc-400 uppercase font-sans font-medium border-b border-zinc-800/80">
               <tr>
-                <th class="px-4 py-2.5">Time (Tehran)</th>
+                <th class="px-4 py-2.5">Time (Moscow)</th>
                 <th class="px-4 py-2.5">User</th>
                 <th class="px-4 py-2.5">Ingress</th>
                 <th class="px-4 py-2.5">Proto</th>
@@ -458,7 +458,7 @@
                 <th class="px-4 py-3">OS Version</th>
                 <th class="px-4 py-3">Client / App</th>
                 <th class="px-4 py-3">HWID Hash</th>
-                <th class="px-4 py-3 text-right">Last Active (Tehran)</th>
+                <th class="px-4 py-3 text-right">Last Active (Moscow)</th>
               </tr>
             </thead>
             <tbody id="hwidTableBody" class="divide-y divide-zinc-800/40">
@@ -640,7 +640,7 @@
             <table class="w-full min-w-[620px] text-left text-xs text-zinc-300">
               <thead class="bg-zinc-950/60 font-sans text-zinc-400 uppercase">
                 <tr>
-                  <th class="px-3 py-2 text-brand-400 font-medium">Time (Tehran) ▼</th>
+                  <th class="px-3 py-2 text-brand-400 font-medium">Time (Moscow) ▼</th>
                   <th class="px-3 py-2">Website Destination</th>
                   <th class="px-3 py-2">Route Pathway</th>
                 </tr>
@@ -986,7 +986,7 @@
         if (timelineChartInstance) timelineChartInstance.destroy();
 
         const labels = points.map(p => {
-          const t = toTehranTime(p.hour_bucket);
+          const t = toMoscowTime(p.hour_bucket);
           const parts = t.split(' ');
           if (parts.length >= 2) {
             const timePart = parts[1].slice(0, 5);
@@ -1020,7 +1020,7 @@
                   title: (items) => {
                     if (!items.length) return '';
                     const idx = items[0].dataIndex;
-                    return `${toTehranTime(points[idx].hour_bucket)} (Tehran Time)`;
+                    return `${toMoscowTime(points[idx].hour_bucket)} (Moscow Time)`;
                   }
                 }
               }
@@ -1114,7 +1114,7 @@
             </td>
             <td class="px-4 py-3 text-right font-mono font-medium text-zinc-200">${Number(u.total_hits).toLocaleString()}</td>
             <td class="px-4 py-3 text-right font-mono text-zinc-400">${u.unique_domains}</td>
-            <td class="px-4 py-3 font-mono text-zinc-400 text-[11px]">${toTehranTime(u.last_seen)}</td>
+            <td class="px-4 py-3 font-mono text-zinc-400 text-[11px]">${toMoscowTime(u.last_seen)}</td>
             <td class="px-4 py-3 text-center">
               <button data-action="inspect-user" data-user-id="${u.user_id}" data-username="${escapeHtml(u.username)}" class="px-2.5 py-1 rounded bg-brand-600/20 text-brand-400 border border-brand-500/30 hover:bg-brand-600 hover:text-white transition text-xs font-medium">
                 View Activity
@@ -1162,7 +1162,7 @@
 
           return `
             <tr class="hover:bg-zinc-800/30 transition text-[11px]">
-              <td class="px-4 py-1.5 text-zinc-400 whitespace-nowrap">${toTehranTime(r.ts)}</td>
+              <td class="px-4 py-1.5 text-zinc-400 whitespace-nowrap">${toMoscowTime(r.ts)}</td>
               <td class="px-4 py-1.5 font-sans font-medium text-zinc-200">${escapeHtml(r.username)} <span class="text-zinc-500">(#${r.user_id})</span></td>
               <td class="px-4 py-1.5 whitespace-nowrap">${ingressBadge}</td>
               <td class="px-4 py-1.5 uppercase text-zinc-400">${escapeHtml(r.proto)}</td>
@@ -1338,7 +1338,7 @@
                 <div class="text-[11px] text-zinc-500 font-mono">HWID: <span class="text-zinc-400">${escapeHtml(d.hwid || '-')}</span></div>
               </div>
               <div class="text-right font-mono text-[11px] text-zinc-400">
-                <div>${toTehranTime(d.updatedAt || d.createdAt)}</div>
+                <div>${toMoscowTime(d.updatedAt || d.createdAt)}</div>
                 <div class="text-zinc-500 mt-0.5">IP: ${escapeHtml(d.requestIp || '-')}</div>
               </div>
             </div>
@@ -1379,7 +1379,7 @@
           `).join('');
         }
 
-        // Recent Connection Logs with Tehran time and Route Pathway (Sorted newest first)
+        // Recent Connection Logs with Moscow time and Route Pathway (Sorted newest first)
         const recentTbody = document.getElementById('modalUserRecent');
         const sortedRecent = (data.recent_connections || []).sort((a, b) => {
           const parseTime = (val) => {
@@ -1518,29 +1518,29 @@
       return `<span class="text-zinc-400 font-mono text-[10px]">${escapeHtml(r?.node_path || r?.node || 'DE1')}</span>`;
     }
 
-    // TEHRAN TIMEZONE UTILITIES
-    function toTehranTime(str) {
+    // MOSCOW TIMEZONE UTILITIES
+    function toMoscowTime(str) {
       if (!str) return '-';
       try {
         let s = String(str).trim();
         // Handle unix epochs in seconds or milliseconds
         if (/^\d{10,13}$/.test(s)) {
           const ms = s.length === 10 ? Number(s) * 1000 : Number(s);
-          return formatTehranDate(new Date(ms));
+          return formatMoscowDate(new Date(ms));
         }
         if (!s.includes('T') && s.includes(' ')) s = s.replace(' ', 'T') + 'Z';
         else if (!s.endsWith('Z') && !s.includes('+')) s += 'Z';
         const d = new Date(s);
         if (isNaN(d.getTime())) return str;
-        return formatTehranDate(d);
+        return formatMoscowDate(d);
       } catch {
         return str;
       }
     }
 
-    function formatTehranDate(d) {
+    function formatMoscowDate(d) {
       return new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'Asia/Tehran',
+        timeZone: 'Europe/Moscow',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -1551,19 +1551,19 @@
       }).format(d).replace(',', '');
     }
 
-    function startTehranClock() {
+    function startMoscowClock() {
       function update() {
         const now = new Date();
         const timeStr = new Intl.DateTimeFormat('en-GB', {
-          timeZone: 'Asia/Tehran',
+          timeZone: 'Europe/Moscow',
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit',
           hour12: false
         }).format(now);
-        const clockEl = document.getElementById('tehranClock');
-        if (clockEl) clockEl.innerText = `Tehran: ${timeStr}`;
-        const clockMobile = document.getElementById('tehranClockMobile');
+        const clockEl = document.getElementById('moscowClock');
+        if (clockEl) clockEl.innerText = `Moscow: ${timeStr}`;
+        const clockMobile = document.getElementById('moscowClockMobile');
         if (clockMobile) clockMobile.innerText = timeStr.slice(0, 5);
       }
       update();
@@ -2059,7 +2059,7 @@
 
     // Startup
     document.addEventListener('DOMContentLoaded', () => {
-      startTehranClock();
+      startMoscowClock();
       loadUsersDropdown();
       loadAllData();
       startAutoRefresh();
