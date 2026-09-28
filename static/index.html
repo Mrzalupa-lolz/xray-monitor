@@ -1356,7 +1356,7 @@
         } else {
           srhTbody.innerHTML = srhRecords.slice(0, 15).map(r => `
             <tr class="hover:bg-zinc-800/30 transition text-[11px]">
-              <td class="px-3 py-2 text-zinc-400 whitespace-nowrap">${toTehranTime(r.requestAt)}</td>
+              <td class="px-3 py-2 text-zinc-400 whitespace-nowrap">${toMoscowTime(r.requestAt)}</td>
               <td class="px-3 py-2 text-zinc-300 font-mono">${escapeHtml(r.requestIp || '-')}</td>
               <td class="px-3 py-2 text-white">${escapeHtml(r.clientApp || (r.userAgent ? r.userAgent.split('/')[0] : 'Generic'))}</td>
               <td class="px-3 py-2 text-zinc-400">${escapeHtml(r.srrResponseType || r.srrRuleName || 'Base64')}</td>
@@ -1398,7 +1398,7 @@
         } else {
           recentTbody.innerHTML = sortedRecent.map(c => `
             <tr class="hover:bg-zinc-800/30 transition text-[11px]">
-              <td class="px-3 py-2 text-zinc-400 whitespace-nowrap font-mono">${toTehranTime(c.ts)}</td>
+              <td class="px-3 py-2 text-zinc-400 whitespace-nowrap font-mono">${toMoscowTime(c.ts)}</td>
               <td class="px-3 py-2">
                 <div class="font-medium text-zinc-100 flex items-center gap-1.5">
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -1436,7 +1436,7 @@
                 <span class="text-zinc-500 font-mono text-[10px] ml-1">(#${u.user_id})</span>
               </td>
               <td class="px-4 py-2 text-right font-mono text-zinc-300">${Number(u.hits).toLocaleString()}</td>
-              <td class="px-4 py-2 font-mono text-zinc-400 text-[11px]">${toTehranTime(u.last_seen)}</td>
+              <td class="px-4 py-2 font-mono text-zinc-400 text-[11px]">${toMoscowTime(u.last_seen)}</td>
             </tr>
           `).join('');
         }
@@ -1669,7 +1669,7 @@
             ${d.hwid ? escapeHtml(d.hwid.slice(0, 12)) + '...' : '-'}
           </td>
           <td class="px-4 py-3 text-right font-mono text-zinc-400">
-            ${toTehranTime(d.updatedAt || d.createdAt)}
+            ${toMoscowTime(d.updatedAt || d.createdAt)}
           </td>
         </tr>
       `).join('');
@@ -1749,7 +1749,7 @@
 
       tbody.innerHTML = records.map(r => `
         <tr class="hover:bg-zinc-800/30 transition">
-          <td class="px-4 py-2.5 text-zinc-400 whitespace-nowrap">${toTehranTime(r.requestAt)}</td>
+          <td class="px-4 py-2.5 text-zinc-400 whitespace-nowrap">${toMoscowTime(r.requestAt)}</td>
           <td class="px-4 py-2.5 font-sans font-medium text-white">
             ${escapeHtml(r.user ? r.user.username : 'User #' + r.userId)}
             <span class="text-zinc-500 font-mono text-[10px]">(#${r.userId})</span>
